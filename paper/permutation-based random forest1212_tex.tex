@@ -1,0 +1,54 @@
+\documentclass[11pt]{article}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{epstopdf}
+\usepackage{float}
+\usepackage{amsmath,amsfonts,amsthm,url,array,etoolbox}
+\usepackage{enumerate}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage[titlenumbered,ruled]{algorithm2e}
+\usetikzlibrary{arrows,positioning,calc,decorations.markings}
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}
+\newtheorem{conj}{Conjecture}
+\newtheorem*{exmp*}{Example}%%no label here.
+
+\theoremstyle{remark}
+\newtheorem{rem}{Remark}
+\newtheorem*{note}{Note}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\tikzset{
+    %Define standard arrow tip
+    >=stealth',
+    % Define arrow style
+    pil/.style={
+           ->,
+           thick}
+}
+
+
+\author{Yingjie Guo, Chenxi Wu, Ao Li, Junwei Zhang, Alon Keinan,\\ Maozu Guo}
+\title{A gene-based permuted Xgboost method for detecting and ranking gene-gene interactions of qualitative trait}
+
+
+\begin{document}
+
+\begin{thebibliography}{9}
+\end{thebibliography}
+
+
+
+\end{document}
