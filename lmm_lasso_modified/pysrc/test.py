@@ -27,8 +27,6 @@ import lmm_lasso
 import os
 
 if __name__ == "__main__":
-    # plot directory
-    plots_dir = 'plots'
 
     # data directory
     data_dir = 'data'
@@ -54,10 +52,10 @@ if __name__ == "__main__":
     debug = False
     n_train = 150
     n_test = n_s - n_train
-    n_reps = 10
+    n_reps = 20
     f_subset = 0.5
-    mu = 10
-    mu2 = 10
+    mu = 8
+    mu2 = 2
     group=[]
     for i in range(100):
         group+=[([]+range(i*10,i*10+10))]
@@ -73,104 +71,19 @@ if __name__ == "__main__":
     # train
     res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],mu,mu2,group,debug=debug)
     w=res['weights']
-    print [ele for row in w for ele in row]
-    # print '... number of Nonzero Weights: %d'%(w!=0).sum()
-
+    wp=[ele for row in w for ele in row]
+    for i in range(100):
+        print wp[i*10:i*10+10], i*10+10
+        
     # predict
     ldelta0 = res['ldelta0']
     yhat = lmm_lasso.predict(y[train_idx],X[train_idx,:],X[test_idx,:],K[train_idx][:,train_idx],K[test_idx][:,train_idx],ldelta0,w)
     corr = 1./n_test * ((yhat-yhat.mean())*(y[test_idx]-y[test_idx].mean())).sum()/(yhat.std()*y[test_idx].std())
-    print '... corr(Yhat,Ytrue): %.2f (in percent)'%(corr)
-
+    print corr
 
     # stability selection
     ss = lmm_lasso.stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset)
-    print ss
-    
-##    # create plot folder
-##    if not os.path.exists(plots_dir):
-##        os.makedirs(plots_dir)
-##        
-##    # plot kernel
-##    fig = PLT.figure()
-##    fig.add_subplot(111)
-##    PLT.imshow(K,interpolation='nearest')
-##    PLT.xlabel('samples')
-##    PLT.ylabel('samples')
-##    PLT.title('Population Kernel')
-##    fn_out = os.path.join(plots_dir,'kernel.pdf')
-##    PLT.savefig(fn_out)
-##    PLT.close()
-##
-##    # plot negative log likelihood of the null model
-##    monitor = res['monitor_nm']
-##    fig = PLT.figure()
-##    fig.add_subplot(111)
-##    PLT.plot(monitor['ldeltagrid'],monitor['nllgrid'],'b-')
-##    PLT.plot(monitor['ldeltaopt'],monitor['nllopt'],'r*')
-##    PLT.xlabel('ldelta')
-##    PLT.ylabel('negative log likelihood')
-##    PLT.title('nLL on the null model')
-##    fn_out = os.path.join(plots_dir, 'nLL.pdf')
-##    PLT.savefig(fn_out)
-##    PLT.close()
-##        
-##    # plot Lasso convergence
-##    monitor = res['monitor_lasso']
-##    fig = PLT.figure()
-##    fig.add_subplot(311)
-##    PLT.plot(monitor['objval'])
-##    PLT.title('Lasso convergence')
-##    PLT.ylabel('objective')
-##    fig.add_subplot(312)
-##    PLT.plot(monitor['r_norm'],'b-',label='r norm')
-##    PLT.plot(monitor['eps_pri'],'k--',label='eps pri')
-##    PLT.ylabel('r norm')
-##    fig.add_subplot(313)
-##    PLT.plot(monitor['s_norm'],'b-',label='s norm')
-##    PLT.plot(monitor['eps_dual'],'k--',label='eps dual')
-##    PLT.ylabel('s norm')
-##    PLT.xlabel('iteration')
-##    fn_out = os.path.join(plots_dir,'lasso_convergence.pdf')
-##    PLT.savefig(fn_out)
-##    PLT.close()
-##
-##    # plot weights
-##    fig = PLT.figure()
-##    fig.add_subplot(111)
-##    PLT.title('Weight vector')
-##    PLT.plot(w,'b',alpha=0.7)
-##    for i in range(idx.shape[0]):
-##        PLT.axvline(idx[i],linestyle='--',color='k')
-##    fn_out = os.path.join(plots_dir,'weights.pdf')
-##    PLT.savefig(fn_out)
-##    PLT.close()
-##
-##    # plot stability selection
-##    fig = PLT.figure()
-##    fig.add_subplot(111)
-##    PLT.title('Stability Selection')
-##    PLT.plot(ss,'b',alpha=0.7)
-##    for i in range(idx.shape[0]):
-##        PLT.axvline(idx[i],linestyle='--',color='k')
-##    PLT.axhline(0.5,color='r')
-##    fn_out = os.path.join(plots_dir,'ss_frequency.pdf')
-##    PLT.savefig(fn_out)
-##    PLT.close()
-##
-##    # plot predictions
-##    fig = PLT.figure()
-##    fig.add_subplot(111)
-##    PLT.title('prediction')
-##    PLT.plot(y[test_idx],yhat, 'bx')
-##    PLT.plot(y[test_idx],y[test_idx],'k')
-##    PLT.xlabel('y(true)')
-##    PLT.ylabel('y(predicted)')
-##    PLT.xlabel('SNPs')
-##    PLT.ylabel('weights')
-##    fn_out = os.path.join(plots_dir,'predictions.pdf')
-##    PLT.savefig(fn_out)
-##    PLT.close()
-##        
-        
+    ssp = [int(f*5) for f in ss]
+    for i in range(100):
+        print ssp[i*10:i*10+10], i*10+10    
 
