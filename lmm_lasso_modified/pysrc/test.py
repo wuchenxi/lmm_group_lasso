@@ -37,15 +37,13 @@ if __name__ == "__main__":
     [n_s,n_f] = X.shape
 
     # simulate phenotype
-    SP.random.seed(1)
-    n_c = 5
-    idx = SP.random.randint(0,n_f,n_c)
-    w = 1./n_c * SP.ones((n_c,1))
-    ypheno = SP.dot(X[:,idx],w)
+    ypheno = SP.sum(X[:,[]+range(2,6)+range(8,14)+range(67,79)+range(201,204)],axis=1)
+    ypheno = SP.reshape(ypheno,(n_s,1))
     ypheno = (ypheno-ypheno.mean())/ypheno.std()
-    ypop2 = SP.sum(X[:,[]+range(2,6)+range(8,14)+range(67,79)+range(201,204)],axis=1)
-    ypop2 = SP.reshape(ypop2,(n_s,1))
-    y = 0.3*ypop2 + 0.5*ypheno + 0.2*SP.random.randn(n_s,1)
+    pheno_filename = os.path.join(data_dir,'poppheno.csv')
+    ypop = SP.genfromtxt(pheno_filename)
+    ypop = SP.reshape(ypop,(n_s,1))
+    y = 0.3*ypop + 0.5*ypheno + 0.2*SP.random.randn(n_s,1)
     y = (y-y.mean())/y.std()
     
     # init
