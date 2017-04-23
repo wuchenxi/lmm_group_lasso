@@ -29,7 +29,7 @@ import time
 import numpy as NP
 
 
-def stability_selection(X,K,y,mu,n_reps,f_subset,**kwargs):
+def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset,**kwargs):
     """
     run stability selection
 
@@ -47,13 +47,13 @@ def stability_selection(X,K,y,mu,n_reps,f_subset,**kwargs):
     """
     time_start = time.time()
     [n_s,n_f] = X.shape
-    n_subsample = SP.ceil(f_subset * n_s)
+    n_subsample = int(SP.ceil(f_subset * n_s))
     freq = SP.zeros(n_f)
     
     for i in range(n_reps):
         print 'Iteration %d'%i
         idx = SP.random.permutation(n_s)[:n_subsample]
-        res = train(X[idx],K[idx][:,idx],y[idx],mu,**kwargs)
+        res = train(X[idx],K[idx][:,idx],y[idx],mu,mu2,group,**kwargs)
         snp_idx = (res['weights']!=0).flatten()
         freq[snp_idx] += 1.
         
@@ -63,7 +63,7 @@ def stability_selection(X,K,y,mu,n_reps,f_subset,**kwargs):
     print '... finished in %.2fs'%(time_diff)
     return freq
 
-def train(X,K,y,mu,mu2=1,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1,debug=False):
+def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1,debug=False):
     """
     train linear mixed model lasso
 
@@ -81,8 +81,6 @@ def train(X,K,y,mu,mu2=1,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,lde
     Output:
     results
     """
-    print 'train LMM-Lasso'
-    print '...l1-penalty: %.2f'%mu
     
     time_start = time.time()
     [n_s,n_f] = X.shape
@@ -169,7 +167,7 @@ helper functions
 def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=5000,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False):
     """
     train lasso via Alternating Direction Method of Multipliers:
-    min_w  0.5*sum((y-Xw)**2) + mu*|z|
+    min_w  0.5*sum((y-Xw)**2) + mu*|z| + mu2*|z|_2
     
     Input:
     X: design matrix: n_s x n_f

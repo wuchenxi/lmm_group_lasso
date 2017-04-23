@@ -24,7 +24,6 @@ import csv
 import scipy as SP
 import pdb
 import lmm_lasso
-import matplotlib.pylab as PLT
 import os
 
 if __name__ == "__main__":
@@ -48,18 +47,25 @@ if __name__ == "__main__":
     ypheno = (ypheno-ypheno.mean())/ypheno.std()
     pheno_filename = os.path.join(data_dir,'poppheno.csv')
     ypop = SP.genfromtxt(pheno_filename)
-    ypop = SP.reshape(ypop,(n_s,1))
-    y = 0.3*ypop + 0.5*ypheno + 0.2*SP.random.randn(n_s,1)
+    ypop2 = SP.sum(X[:,[0,4,45,46,90]],axis=1)
+    print ypop2
+    ypop2 = SP.reshape(ypop2,(n_s,1))
+    print ypop2
+    y = 0.3*ypop2 + 0.5*ypheno + 0.2*SP.random.randn(n_s,1)
     y = (y-y.mean())/y.std()
     
     # init
     debug = False
     n_train = 150
     n_test = n_s - n_train
-    n_reps = 100
+    n_reps = 10
     f_subset = 0.5
     mu = 10
-
+    mu2 = 10
+    group=[]
+    for i in range(100):
+       group+=[([]+range(i*10,i*10+10))]
+        
     # split into training and testing
     train_idx = SP.random.permutation(SP.arange(n_s))
     test_idx = train_idx[n_train:]
@@ -69,9 +75,10 @@ if __name__ == "__main__":
     K = 1./n_f*SP.dot(X,X.T)
     
     # train
-    res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],mu,debug=debug)
-    w = res['weights']
-    print '... number of Nonzero Weights: %d'%(w!=0).sum()
+    res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],mu,mu2,group,debug=debug)
+    w=res['weights']
+    print [ele for row in w for ele in row]
+    # print '... number of Nonzero Weights: %d'%(w!=0).sum()
 
     # predict
     ldelta0 = res['ldelta0']
@@ -81,92 +88,93 @@ if __name__ == "__main__":
 
 
     # stability selection
-    ss = lmm_lasso.stability_selection(X,K,y,mu,n_reps,f_subset)
-
-    # create plot folder
-    if not os.path.exists(plots_dir):
-        os.makedirs(plots_dir)
-        
-    # plot kernel
-    fig = PLT.figure()
-    fig.add_subplot(111)
-    PLT.imshow(K,interpolation='nearest')
-    PLT.xlabel('samples')
-    PLT.ylabel('samples')
-    PLT.title('Population Kernel')
-    fn_out = os.path.join(plots_dir,'kernel.pdf')
-    PLT.savefig(fn_out)
-    PLT.close()
-
-    # plot negative log likelihood of the null model
-    monitor = res['monitor_nm']
-    fig = PLT.figure()
-    fig.add_subplot(111)
-    PLT.plot(monitor['ldeltagrid'],monitor['nllgrid'],'b-')
-    PLT.plot(monitor['ldeltaopt'],monitor['nllopt'],'r*')
-    PLT.xlabel('ldelta')
-    PLT.ylabel('negative log likelihood')
-    PLT.title('nLL on the null model')
-    fn_out = os.path.join(plots_dir, 'nLL.pdf')
-    PLT.savefig(fn_out)
-    PLT.close()
-        
-    # plot Lasso convergence
-    monitor = res['monitor_lasso']
-    fig = PLT.figure()
-    fig.add_subplot(311)
-    PLT.plot(monitor['objval'])
-    PLT.title('Lasso convergence')
-    PLT.ylabel('objective')
-    fig.add_subplot(312)
-    PLT.plot(monitor['r_norm'],'b-',label='r norm')
-    PLT.plot(monitor['eps_pri'],'k--',label='eps pri')
-    PLT.ylabel('r norm')
-    fig.add_subplot(313)
-    PLT.plot(monitor['s_norm'],'b-',label='s norm')
-    PLT.plot(monitor['eps_dual'],'k--',label='eps dual')
-    PLT.ylabel('s norm')
-    PLT.xlabel('iteration')
-    fn_out = os.path.join(plots_dir,'lasso_convergence.pdf')
-    PLT.savefig(fn_out)
-    PLT.close()
-
-    # plot weights
-    fig = PLT.figure()
-    fig.add_subplot(111)
-    PLT.title('Weight vector')
-    PLT.plot(w,'b',alpha=0.7)
-    for i in range(idx.shape[0]):
-        PLT.axvline(idx[i],linestyle='--',color='k')
-    fn_out = os.path.join(plots_dir,'weights.pdf')
-    PLT.savefig(fn_out)
-    PLT.close()
-
-    # plot stability selection
-    fig = PLT.figure()
-    fig.add_subplot(111)
-    PLT.title('Stability Selection')
-    PLT.plot(ss,'b',alpha=0.7)
-    for i in range(idx.shape[0]):
-        PLT.axvline(idx[i],linestyle='--',color='k')
-    PLT.axhline(0.5,color='r')
-    fn_out = os.path.join(plots_dir,'ss_frequency.pdf')
-    PLT.savefig(fn_out)
-    PLT.close()
-
-    # plot predictions
-    fig = PLT.figure()
-    fig.add_subplot(111)
-    PLT.title('prediction')
-    PLT.plot(y[test_idx],yhat, 'bx')
-    PLT.plot(y[test_idx],y[test_idx],'k')
-    PLT.xlabel('y(true)')
-    PLT.ylabel('y(predicted)')
-    PLT.xlabel('SNPs')
-    PLT.ylabel('weights')
-    fn_out = os.path.join(plots_dir,'predictions.pdf')
-    PLT.savefig(fn_out)
-    PLT.close()
-        
+    ss = lmm_lasso.stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset)
+    print ss
+    
+##    # create plot folder
+##    if not os.path.exists(plots_dir):
+##        os.makedirs(plots_dir)
+##        
+##    # plot kernel
+##    fig = PLT.figure()
+##    fig.add_subplot(111)
+##    PLT.imshow(K,interpolation='nearest')
+##    PLT.xlabel('samples')
+##    PLT.ylabel('samples')
+##    PLT.title('Population Kernel')
+##    fn_out = os.path.join(plots_dir,'kernel.pdf')
+##    PLT.savefig(fn_out)
+##    PLT.close()
+##
+##    # plot negative log likelihood of the null model
+##    monitor = res['monitor_nm']
+##    fig = PLT.figure()
+##    fig.add_subplot(111)
+##    PLT.plot(monitor['ldeltagrid'],monitor['nllgrid'],'b-')
+##    PLT.plot(monitor['ldeltaopt'],monitor['nllopt'],'r*')
+##    PLT.xlabel('ldelta')
+##    PLT.ylabel('negative log likelihood')
+##    PLT.title('nLL on the null model')
+##    fn_out = os.path.join(plots_dir, 'nLL.pdf')
+##    PLT.savefig(fn_out)
+##    PLT.close()
+##        
+##    # plot Lasso convergence
+##    monitor = res['monitor_lasso']
+##    fig = PLT.figure()
+##    fig.add_subplot(311)
+##    PLT.plot(monitor['objval'])
+##    PLT.title('Lasso convergence')
+##    PLT.ylabel('objective')
+##    fig.add_subplot(312)
+##    PLT.plot(monitor['r_norm'],'b-',label='r norm')
+##    PLT.plot(monitor['eps_pri'],'k--',label='eps pri')
+##    PLT.ylabel('r norm')
+##    fig.add_subplot(313)
+##    PLT.plot(monitor['s_norm'],'b-',label='s norm')
+##    PLT.plot(monitor['eps_dual'],'k--',label='eps dual')
+##    PLT.ylabel('s norm')
+##    PLT.xlabel('iteration')
+##    fn_out = os.path.join(plots_dir,'lasso_convergence.pdf')
+##    PLT.savefig(fn_out)
+##    PLT.close()
+##
+##    # plot weights
+##    fig = PLT.figure()
+##    fig.add_subplot(111)
+##    PLT.title('Weight vector')
+##    PLT.plot(w,'b',alpha=0.7)
+##    for i in range(idx.shape[0]):
+##        PLT.axvline(idx[i],linestyle='--',color='k')
+##    fn_out = os.path.join(plots_dir,'weights.pdf')
+##    PLT.savefig(fn_out)
+##    PLT.close()
+##
+##    # plot stability selection
+##    fig = PLT.figure()
+##    fig.add_subplot(111)
+##    PLT.title('Stability Selection')
+##    PLT.plot(ss,'b',alpha=0.7)
+##    for i in range(idx.shape[0]):
+##        PLT.axvline(idx[i],linestyle='--',color='k')
+##    PLT.axhline(0.5,color='r')
+##    fn_out = os.path.join(plots_dir,'ss_frequency.pdf')
+##    PLT.savefig(fn_out)
+##    PLT.close()
+##
+##    # plot predictions
+##    fig = PLT.figure()
+##    fig.add_subplot(111)
+##    PLT.title('prediction')
+##    PLT.plot(y[test_idx],yhat, 'bx')
+##    PLT.plot(y[test_idx],y[test_idx],'k')
+##    PLT.xlabel('y(true)')
+##    PLT.ylabel('y(predicted)')
+##    PLT.xlabel('SNPs')
+##    PLT.ylabel('weights')
+##    fn_out = os.path.join(plots_dir,'predictions.pdf')
+##    PLT.savefig(fn_out)
+##    PLT.close()
+##        
         
 
