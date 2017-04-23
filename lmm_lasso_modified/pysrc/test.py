@@ -59,8 +59,8 @@ if __name__ == "__main__":
     mu = 10
     mu2 = 10
     group=[]
-#    for i in range(100):
-#       group+=[([]+range(i*10,i*10+10))]
+    for i in range(100):
+        group+=[([]+range(i*10,i*10+10))]
         
     # split into training and testing
     train_idx = SP.random.permutation(SP.arange(n_s))
