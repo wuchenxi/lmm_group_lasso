@@ -37,7 +37,8 @@ if __name__ == "__main__":
     [n_s,n_f] = X.shape
 
     # simulate phenotype
-    ypheno = SP.sum(X[:,[]+range(2,6)+range(8,14)+range(67,79)+range(201,204)],axis=1)
+    idx=[]+range(2,6)+range(8,14)+range(67,79)+range(201,204)
+    ypheno = SP.sum(X[:,idx],axis=1)
     ypheno = SP.reshape(ypheno,(n_s,1))
     ypheno = (ypheno-ypheno.mean())/ypheno.std()
     pheno_filename = os.path.join(data_dir,'poppheno.csv')
@@ -50,10 +51,10 @@ if __name__ == "__main__":
     debug = False
     n_train = 150
     n_test = n_s - n_train
-    n_reps = 20
+    n_reps = 10
     f_subset = 0.5
-    mu = 8
-    mu2 = 2
+    mu = 10
+    mu2 = 10
     group=[]
     for i in range(100):
         group+=[([]+range(i*10,i*10+10))]
@@ -81,7 +82,24 @@ if __name__ == "__main__":
 
     # stability selection
     ss = lmm_lasso.stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset)
-    ssp = [int(f*5) for f in ss]
     for i in range(100):
-        print ssp[i*10:i*10+10], i*10+10    
+        print ss[i*10:i*10+10], i*10+10
 
+    sserr=0
+    for i in range(1000):
+        if i in idx:
+            sserr+=20-ss[i]
+        else:
+            sserr+=ss[i]
+    ss2=lmm_lasso.stability_selection(X,K,y,mu,mu2,[],n_reps,f_subset)
+    diffss=[int(x-y) for x, y in zip(ss,ss2)]
+    for i in range(100):
+        print diffss[i*10:i*10+10], i*10+10    
+    
+    ss2err=0
+    for i in range(1000):
+        if i in idx:
+            ss2err+=20-ss2[i]
+        else:
+            ss2err+=ss2[i]
+    print sserr, ss2err

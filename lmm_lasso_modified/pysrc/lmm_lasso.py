@@ -55,9 +55,8 @@ def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset,**kwargs):
         idx = SP.random.permutation(n_s)[:n_subsample]
         res = train(X[idx],K[idx][:,idx],y[idx],mu,mu2,group,**kwargs)
         snp_idx = (res['weights']!=0).flatten()
-        freq[snp_idx] += 1.
+        freq[snp_idx] += 1
         
-    freq /= n_reps
     time_end = time.time()
     time_diff = time_end - time_start
     print '... finished in %.2fs'%(time_diff)
