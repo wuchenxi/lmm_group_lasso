@@ -45,12 +45,8 @@ if __name__ == "__main__":
     w = 1./n_c * SP.ones((n_c,1))
     ypheno = SP.dot(X[:,idx],w)
     ypheno = (ypheno-ypheno.mean())/ypheno.std()
-    pheno_filename = os.path.join(data_dir,'poppheno.csv')
-    ypop = SP.genfromtxt(pheno_filename)
-    ypop2 = SP.sum(X[:,[0,4,45,46,90]],axis=1)
-    print ypop2
+    ypop2 = SP.sum(X[:,[]+range(2,6)+range(8,14)+range(67,79)+range(201,204)],axis=1)
     ypop2 = SP.reshape(ypop2,(n_s,1))
-    print ypop2
     y = 0.3*ypop2 + 0.5*ypheno + 0.2*SP.random.randn(n_s,1)
     y = (y-y.mean())/y.std()
     
@@ -63,8 +59,8 @@ if __name__ == "__main__":
     mu = 10
     mu2 = 10
     group=[]
-    for i in range(100):
-       group+=[([]+range(i*10,i*10+10))]
+#    for i in range(100):
+#       group+=[([]+range(i*10,i*10+10))]
         
     # split into training and testing
     train_idx = SP.random.permutation(SP.arange(n_s))
