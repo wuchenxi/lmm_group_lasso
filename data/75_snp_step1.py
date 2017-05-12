@@ -8,7 +8,9 @@ import os
 if __name__ == "__main__":
 
     # load genotypes
-    X = SP.genfromtxt('call_method_75_TAIR9.csv',delimiter=',',dtype=None)
+    genofile = open('call_method_75_TAIR9.csv','rb')
+    genoreader = csv.reader(genofile, delimiter=',')
+    X = SP.array(list(genoreader))
     Y = (X[0:2]).tolist()
     SP.random.seed(84)
     for i in range(2,X.shape[0]):
