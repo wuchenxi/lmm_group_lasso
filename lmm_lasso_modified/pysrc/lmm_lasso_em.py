@@ -62,7 +62,7 @@ def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset,**kwargs):
     print '... finished in %.2fs'%(time_diff)
     return freq
 
-def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1,debug=False):
+def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1):
     """
     train linear mixed model lasso
 
@@ -90,7 +90,7 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
         y = SP.reshape(y,(n_s,1))
 
     # train null model
-    S,U,ldelta0,monitor_nm = train_nullmodel(y,K,numintervals,ldeltamin,ldeltamax,debug=debug)
+    S,U,ldelta0,monitor_nm = train_nullmodel(y,K,numintervals,ldeltamin,ldeltamax)
     
     # train lasso on residuals
     delta0 = SP.exp(ldelta0)
@@ -101,7 +101,7 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     SUy = SP.dot(U.T,y)
     SUy = SUy * SP.reshape(Sdi_sqrt,(n_s,1))
     
-    w,monitor_lasso = train_lasso(SUX,SUy,mu,mu2,group,rho,alpha,debug=debug)
+    w = train_lasso(SUX,SUy,mu,mu2,group,rho,alpha)
 
     time_end = time.time()
     time_diff = time_end - time_start
@@ -111,7 +111,6 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     res['ldelta0'] = ldelta0
     res['weights'] = w
     res['time'] = time_diff
-    res['monitor_lasso'] = monitor_lasso
     res['monitor_nm'] = monitor_nm
     return res
 
@@ -163,79 +162,49 @@ def predict(y_t,X_t,X_v,K_tt,K_vt,ldelta,w):
 helper functions
 """
 
-def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=5000,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False):
+def lmul(D, M):
+    return SP.multiply(SP.matrix([D]).transpose(),M)
+
+def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=8000,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3):
     """
-    train lasso via Alternating Direction Method of Multipliers:
+    train lasso via 
     min_w  0.5*sum((y-Xw)**2) + mu*|z| + mu2*|z|_2
     
     Input:
     X: design matrix: n_s x n_f
     y: outcome:  n_s x 1
     mu: l1-penalty parameter
-    rho: augmented Lagrangian parameter
-    alpha: over-relatation parameter (typically ranges between 1.0 and 1.8)
-
-    the implementation is a python version of Boyd's matlab implementation of ADMM-Lasso, which can be found at:
-    http://www.stanford.edu/~boyd/papers/admm/lasso/lasso.html
-
-    more information about ADMM can be found in the paper linked at:
-    http://www.stanford.edu/~boyd/papers/distr_opt_stat_learning_admm.html
-
-    In particular, you can use any other Lasso-Solver instead. For the experiments, reported in the paper,
-    we used the l1-solver from the package scikits. We didn't apply it here to avoid third-party packages.
     """
-    if debug:
-        print '... train lasso'
-
-    # init
     [n_s,n_f] = X.shape
-    w = SP.zeros((n_f,1))
-    z = SP.zeros((n_f,1))
-    u = SP.zeros((n_f,1))
+    sig=1
 
-    monitor = {}
-    monitor['objval'] = []
-    monitor['r_norm'] = []
-    monitor['s_norm'] = []
-    monitor['eps_pri'] = []
-    monitor['eps_dual'] = []
-
-    # cache factorization
-    U = factor(X,rho)
-
-    # save a matrix-vector multiply
-    Xy = SP.dot(X.T,y)
-
-    if debug:
-        print 'i\tobj\t\tr_norm\t\ts_norm\t\teps_pri\t\teps_dual'
-
+    lam=mu**0.5
+    XX=SP.dot(X.transpose(),X)
+    XY=SP.dot(X.transpose(),y)
+    w=SP.ones(n_f)
+ 
     for i in range(max_iter):
-        # w-update
-        q = Xy + rho*(z-u)
-        w = q/rho - SP.dot(X.T,LA.cho_solve((U,False),SP.dot(X,q)))/rho**2
-
-        # z-update with relaxation
-        zold = z
-        w_hat = alpha*w + (1-alpha)*zold
-        z = soft_thresholding(w_hat+u, mu/rho,mu2/rho,group)
-
-        # u-update
-        u = u + (w_hat - z)
-
-        monitor['r_norm'].append(LA.norm(w-z))
-        monitor['s_norm'].append(LA.norm(rho*(z-zold)))
-        monitor['eps_pri'].append(SP.sqrt(n_f)*abstol + reltol*max(LA.norm(w),LA.norm(z)))
-        monitor['eps_dual'].append(SP.sqrt(n_f)*abstol + reltol*LA.norm(rho*u))
-
-        if debug:
-            print '%3d\t%10.4f\t%10.4f\t%10.4f\t%10.2f'%(i,monitor['r_norm'][i],monitor['s_norm'][i],monitor['eps_pri'][i],monitor['eps_dual'][i])
-
-        if monitor['r_norm'][i]<monitor['eps_pri'][i] and monitor['r_norm'][i]<monitor['eps_dual'][i]:
+        D=SP.array(abs(w))
+        n_s,n_f = X.shape
+        XD=SP.multiply(D,X)
+        H=SP.dot(X,XD.transpose())
+        w1=SP.dot(XD.transpose(),LA.solve(H+SP.diag([lam]*n_s),y))
+        #print w1
+        w1=w1[:,0]
+        if LA.norm(w1-w)<zero_threshold:
             break
-    print i
-    
+        w=w1
+        #print "w", w, SP.dot(XY[:,0],XY[:,0])
+        #M=SP.dot(w,SP.dot(X.transpose(),y)[:,0])
+        #print "yy", y[:,0], SP.dot(y.transpose(),y), M
+        #sig=(SP.dot(y.transpose(),y)[0,0]-M)/(n_s+n_f-3)
+        #print sig
+        #lam=(sig*mu)**0.5
+        #print i, sig, LA.norm(w)#, D
+        
     w[SP.absolute(w)<zero_threshold]=0
-    return w,monitor
+    print i
+    return w
 
 
 def nLLeval(ldelta,Uy,S):
@@ -266,7 +235,7 @@ def nLLeval(ldelta,Uy,S):
     return nLL
 
 
-def train_nullmodel(y,K,numintervals=100,ldeltamin=-5,ldeltamax=5,debug=False):
+def train_nullmodel(y,K,numintervals=100,ldeltamin=-5,ldeltamax=5):
     """
     train random effects model:
     min_{delta}  1/2(n_s*log(2pi) + logdet(K) + 1/ss * y^T(K + deltaI)^{-1}y,
@@ -280,9 +249,6 @@ def train_nullmodel(y,K,numintervals=100,ldeltamin=-5,ldeltamax=5,debug=False):
     ldeltamin: minimal delta value (log-space)
     ldeltamax: maximal delta value (log-space)
     """
-    if debug:
-        print '... train null model'
-        
     n_s = y.shape[0]
 
     # rotate data
@@ -352,17 +318,31 @@ def soft_thresholding(w,kappa,kappa2,gp):
     zeros = SP.zeros((n_f,1))
     s = NP.max(SP.hstack((w-kappa,zeros)),axis=1) - NP.max(SP.hstack((-w-kappa,zeros)),axis=1)
     for group in gp:
-        vgn=SP.dot(s[group[0]:group[1]],s[group[0]:group[1]])**0.5#this is 2 times faster than LA.norm 
+        vg=s[group]
+        vgn=LA.norm(vg)
+        ratio=0
         if vgn>kappa2:
             ratio=(vgn-kappa2)/vgn
-        else:
-            ratio=0
-        s[group[0]:group[1]]=ratio*s[group[0]:group[1]]
+        s[group]=ratio*vg
     s = SP.reshape(s,(n_f,1))
     return s
 
 
+def lasso_obj(X,y,w,mu,z):
+    """
+    evaluates lasso objective: 0.5*sum((y-Xw)**2) + mu*|z|
+
+    Input:
+    X: design matrix: n_s x n_f
+    y: outcome:  n_s x 1
+    mu: l1-penalty parameter
+    w: weights: n_f x 1
+    z: slack variables: n_fx1
+
+    Output:
+    obj
+    """
+    return 0.5*((SP.dot(X,w)-y)**2).sum() + mu*SP.absolute(z).sum()
 
 
-    
     

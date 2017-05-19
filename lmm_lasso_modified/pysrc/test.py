@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import csv
 import scipy as SP
 import pdb
-import lmm_lasso
+import lmm_lasso_em as lmm_lasso
 import os
 
 if __name__ == "__main__":
@@ -37,7 +37,13 @@ if __name__ == "__main__":
     [n_s,n_f] = X.shape
 
     # simulate phenotype
-    idx=[]+range(2,6)+range(8,14)+range(67,79)+range(201,204)
+    idx=[]
+    for i in range(20):
+        idxx=int(SP.rand()*99)*10
+        for j in range(3):
+            idx+=[idxx+int(SP.rand()*9)]
+    print idx
+    
     ypheno = SP.sum(X[:,idx],axis=1)
     ypheno = SP.reshape(ypheno,(n_s,1))
     ypheno = (ypheno-ypheno.mean())/ypheno.std()
@@ -53,11 +59,11 @@ if __name__ == "__main__":
     n_test = n_s - n_train
     n_reps = 10
     f_subset = 0.5
-    mu = 10
-    mu2 = 10
+    mu = 1
+    mu2 = 1
     group=[]
     for i in range(100):
-        group+=[([]+range(i*10,i*10+10))]
+        group+=[[i*10,i*10+10]]
         
     # split into training and testing
     train_idx = SP.random.permutation(SP.arange(n_s))
@@ -66,13 +72,14 @@ if __name__ == "__main__":
 
     # calculate kernel
     K = 1./n_f*SP.dot(X,X.T)
+
+    # Parameter selection
     
     # train
-    res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],mu,mu2,group,debug=debug)
+    res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],mu,mu2,group)
     w=res['weights']
-    wp=[ele for row in w for ele in row]
     for i in range(100):
-        print wp[i*10:i*10+10], i*10+10
+        print w[i*10:i*10+10], i*10+10
         
     # predict
     ldelta0 = res['ldelta0']
@@ -81,6 +88,7 @@ if __name__ == "__main__":
     print corr
 
     # stability selection
+    # group info included
     ss = lmm_lasso.stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset)
     for i in range(100):
         print ss[i*10:i*10+10], i*10+10
@@ -88,9 +96,10 @@ if __name__ == "__main__":
     sserr=0
     for i in range(1000):
         if i in idx:
-            sserr+=20-ss[i]
+            sserr+=5*(10-ss[i])
         else:
             sserr+=ss[i]
+    # group not included
     ss2=lmm_lasso.stability_selection(X,K,y,mu,mu2,[],n_reps,f_subset)
     diffss=[int(x-y) for x, y in zip(ss,ss2)]
     for i in range(100):
@@ -99,7 +108,7 @@ if __name__ == "__main__":
     ss2err=0
     for i in range(1000):
         if i in idx:
-            ss2err+=20-ss2[i]
+            ss2err+=5*(10-ss2[i])
         else:
             ss2err+=ss2[i]
     print sserr, ss2err
