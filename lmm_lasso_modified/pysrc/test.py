@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import csv
 import scipy as SP
 import pdb
-import lmm_lasso_em as lmm_lasso
+import lmm_lasso_vb as lmm_lasso
 import os
 
 if __name__ == "__main__":
@@ -38,9 +38,9 @@ if __name__ == "__main__":
 
     # simulate phenotype
     idx=[]
-    for i in range(20):
+    for i in range(10):
         idxx=int(SP.rand()*99)*10
-        for j in range(3):
+        for j in range(2):
             idx+=[idxx+int(SP.rand()*9)]
     print idx
     
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     pheno_filename = os.path.join(data_dir,'poppheno.csv')
     ypop = SP.genfromtxt(pheno_filename)
     ypop = SP.reshape(ypop,(n_s,1))
-    y = 0.3*ypop + 0.5*ypheno + 0.2*SP.random.randn(n_s,1)
+    y = 0.3*ypop + 0.5*ypheno# + 0.2*SP.random.randn(n_s,1)
     y = (y-y.mean())/y.std()
     
     # init
@@ -59,8 +59,8 @@ if __name__ == "__main__":
     n_test = n_s - n_train
     n_reps = 10
     f_subset = 0.5
-    mu = 1
-    mu2 = 1
+    mu = 5.0
+    mu2 = 5.0
     group=[]
     for i in range(100):
         group+=[[i*10,i*10+10]]
@@ -111,4 +111,8 @@ if __name__ == "__main__":
             ss2err+=5*(10-ss2[i])
         else:
             ss2err+=ss2[i]
-    print sserr, ss2err
+    sse=0
+    for i in range(1000):
+        if i in idx:
+            sse+=50
+    print sserr, ss2err, sse
