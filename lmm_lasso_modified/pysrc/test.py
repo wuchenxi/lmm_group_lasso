@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import csv
 import scipy as SP
 import pdb
-import lmm_lasso_vb as lmm_lasso
+import lmm_lasso as lmm_lasso
 import os
 
 if __name__ == "__main__":
@@ -38,10 +38,10 @@ if __name__ == "__main__":
 
     # simulate phenotype
     idx=[]
-    for i in range(10):
-        idxx=int(SP.rand()*99)*10
-        for j in range(2):
-            idx+=[idxx+int(SP.rand()*9)]
+    for i in range(4):
+        idxx=int(SP.rand()*19)*50
+        for j in range(10):
+            idx+=[idxx+int(SP.rand()*50)]
     print idx
     
     ypheno = SP.sum(X[:,idx],axis=1)
@@ -57,13 +57,13 @@ if __name__ == "__main__":
     debug = False
     n_train = 150
     n_test = n_s - n_train
-    n_reps = 10
+    n_reps = 5
     f_subset = 0.5
     mu = 5.0
-    mu2 = 5.0
+    mu2 = 2.0
     group=[]
-    for i in range(100):
-        group+=[[i*10,i*10+10]]
+    for i in range(20):
+        group+=[[i*50,i*50+50]]
         
     # split into training and testing
     train_idx = SP.random.permutation(SP.arange(n_s))
@@ -93,26 +93,24 @@ if __name__ == "__main__":
     for i in range(100):
         print ss[i*10:i*10+10], i*10+10
 
-    sserr=0
+    sserr1=0
+    sserr2=0
     for i in range(1000):
         if i in idx:
-            sserr+=5*(10-ss[i])
+            sserr1+=n_reps-ss[i]
         else:
-            sserr+=ss[i]
+            sserr2+=ss[i]
     # group not included
     ss2=lmm_lasso.stability_selection(X,K,y,mu,mu2,[],n_reps,f_subset)
     diffss=[int(x-y) for x, y in zip(ss,ss2)]
     for i in range(100):
         print diffss[i*10:i*10+10], i*10+10    
     
-    ss2err=0
+    ss2err1=0
+    ss2err2=0
     for i in range(1000):
         if i in idx:
-            ss2err+=5*(10-ss2[i])
+            ss2err1+=n_reps-ss2[i]
         else:
-            ss2err+=ss2[i]
-    sse=0
-    for i in range(1000):
-        if i in idx:
-            sse+=50
-    print sserr, ss2err, sse
+            ss2err2+=ss2[i]
+    print sserr1, sserr2, ss2err1, ss2err2
