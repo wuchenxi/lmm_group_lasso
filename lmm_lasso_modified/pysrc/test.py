@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import csv
 import scipy as SP
 import pdb
-import lmm_lasso as lmm_lasso
+import lmm_lasso_pg as lmm_lasso
 import os
 
 if __name__ == "__main__":

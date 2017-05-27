@@ -1,5 +1,5 @@
 """
-VBGLasso with Proximal Gradient
+GLasso with Proximal Gradient
 """
 
 import scipy as SP
@@ -83,7 +83,7 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     SUy = SP.dot(U.T,y)
     SUy = SUy * SP.reshape(Sdi_sqrt,(n_s,1))
     
-    w,monitor_lasso = train_lasso2(SUX,SUy,mu,mu2,group,rho,alpha,debug=debug)
+    w,monitor_lasso = train_lasso(SUX,SUy,mu,mu2,group,rho,alpha,debug=debug)
 
     time_end = time.time()
     time_diff = time_end - time_start
@@ -222,18 +222,6 @@ def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=5000,abstol=1E-4,reltol=
     return w,monitor
 
 
-def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=6,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False):
-    [n_s,n_f] = X.shape
-    muv=SP.array([mu]*n_f)
-    mu2v=SP.array([mu2]*len(group))
-    for i in range(max_iter):
-        w, m=train_lasso(X,y,muv,mu2v,group,rho=rho,alpha=alpha,abstol=abstol,reltol=reltol,zero_threshold=zero_threshold,debug=debug)
-        for j in xrange(n_f):
-            muv[j]=mu*4.0/(abs(w[j])+1.0)*m['var']
-        for j in xrange(len(group)):
-            mu2v[j]=mu2*4.0/(LA.norm(w[group[j][0]:group[j][1]])+1.0)*m['var']
-        print i, muv[0], w[0], m['var']
-    return w, m
     
 
 def nLLeval(ldelta,Uy,S):
@@ -351,8 +339,8 @@ def soft_thresholding(w,kappa,kappa2,gp):
     s = NP.max(SP.hstack((w-kappa,zeros)),axis=1) - NP.max(SP.hstack((-w-kappa,zeros)),axis=1)
     for i in xrange(len(gp)):
         vgn=SP.dot(s[gp[i][0]:gp[i][1]],s[gp[i][0]:gp[i][1]])**0.5#this is 2 times faster than LA.norm 
-        if vgn>kappa2[i]:
-            ratio=(vgn-kappa2[i])/vgn
+        if vgn>kappa2:
+            ratio=(vgn-kappa2)/vgn
         else:
             ratio=0
         s[gp[i][0]:gp[i][1]]=ratio*s[gp[i][0]:gp[i][1]]
