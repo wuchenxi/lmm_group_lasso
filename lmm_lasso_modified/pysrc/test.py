@@ -102,9 +102,8 @@ if __name__ == "__main__":
             sserr2+=ss[i]
     # group not included
     ss2=lmm_lasso.stability_selection(X,K,y,mu,mu2,[],n_reps,f_subset)
-    diffss=[int(x-y) for x, y in zip(ss,ss2)]
     for i in range(100):
-        print diffss[i*10:i*10+10], i*10+10    
+        print ss2[i*10:i*10+10], i*10+10    
     
     ss2err1=0
     ss2err2=0
