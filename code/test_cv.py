@@ -1,23 +1,4 @@
 """
-test.py
-
-Author:		Barbara Rakitsch
-Year:		2012
-Group:		Machine Learning and Computational Biology Group (http://webdav.tuebingen.mpg.de/u/karsten/group/)
-Institutes:	Max Planck Institute for Developmental Biology and Max Planck Institute for Intelligent Systems (72076 Tuebingen, Germany)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import csv
@@ -34,13 +15,13 @@ for i in xrange(n_f):
     m=X[i].mean()
     std=X[i].std()
     X[i]=(X[i]-m)/std
-X=X.T
+X = X.T
 print X.shape
 
 # simulate phenotype
 idx=[]
 for i in range(4):
-    idxx=int(SP.rand()*19)*50
+    idxx=int(SP.rand()*20)*50
     for j in range(10):
         idx+=[idxx+int(SP.rand()*50)]
 print idx
@@ -59,81 +40,82 @@ y = (y-y.mean())/y.std()
 debug = False
 n_train = int(n_s*0.7)
 n_test = n_s - n_train
-n_reps = 5
-f_subset = 0.5
+n_reps = 10
+f_subset = 0.7
 
-muinit = 0.01
-mu2init = 0.01
+muinit = 0.05
+mu2init = 0.05
 ps_step = 3
 
 group=[]
-for i in range(43):
+for i in range(20):
     group+=[[i*50,i*50+50]]
-group+=[[2150,2196]]
+group+=[[2000,n_s]]
     
 # split into training and testing
 train_idx = SP.random.permutation(SP.arange(n_s))
 test_idx = train_idx[n_train:]
 train_idx = train_idx[:n_train]
 
-# calculate kernel
+# calculate kernel: this need to be improved!
 K = 1./n_f*SP.dot(X,X.T)
 
 # Glasso Parameter selection by 5 fold cv
 optmu=muinit
 optmu2=mu2init
-opterr=500*n_s
-for j1 in range(10):
-    for j2 in range(10):
+optcor=0
+for j1 in range(8):
+    for j2 in range(8):
         mu=muinit*(ps_step**j1)
         mu2=mu2init*(ps_step**j2)
-        err=0
-        for k in range(5):
+        cor=0
+        for k in range(1): #5 for full 5 fold CV
             train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
-            train2_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
+            valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
             res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,mu2,group)
             w1=res1['weights']
-            yhat1 = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[train2_idx,:],K[train1_idx][:,train1_idx],K[train2_idx][:,train1_idx],res1['ldelta0'],w1)
-            err+=LA.norm(yhat1-y[train2_idx])**2
+            yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
+            cor += SP.dot(yhat.T-yhat.mean(),y[valid_idx]-y[valid_idx].mean())/(yhat.std()*y[valid_idx].std())
         
-        print mu, mu2, err
-        if err<opterr:
-            opterr=err
+        print mu, mu2, cor
+        if cor>optcor:
+            optcor=cor
             optmu=mu
             optmu2=mu2
             
-print optmu, optmu2, opterr
+print optmu, optmu2, optcor
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu,optmu2,group)
-w=res['weights']
+w = res['weights']
     
 # predict
 ldelta0 = res['ldelta0']
 yhat = lmm_lasso.predict(y[train_idx],X[train_idx,:],X[test_idx,:],K[train_idx][:,train_idx],K[test_idx][:,train_idx],ldelta0,w)
-corr = 1./n_test * ((yhat-yhat.mean())*(y[test_idx]-y[test_idx].mean())).sum()/(yhat.std()*y[test_idx].std())
+corr = 1./n_test * SP.dot(yhat.T-yhat.mean(),y[test_idx]-y[test_idx].mean())/(yhat.std()*y[test_idx].std())
 print corr
 
 # lasso parameter selection by 5 fold cv
 optmu0=muinit
-opterr=500*n_s
-for j1 in range(10):
+optcor=0
+for j1 in range(8):
     mu=muinit*(ps_step**j1)
-    err=0
-    for k in range(5):
-        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
-        train2_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
+    cor=0
+    for k in range(1):
+        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],
+                                   train_idx[int(n_train*(k+1)*0.2):n_train]))
+        valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
         res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,0,[])
         w1=res1['weights']
-        yhat1 = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[train2_idx,:],K[train1_idx][:,train1_idx],K[train2_idx][:,train1_idx],res1['ldelta0'],w1)
-        err+=LA.norm(yhat1-y[train2_idx])**2
+        yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
+        cor += SP.dot(yhat.T-yhat.mean(),y[valid_idx]-y[valid_idx].mean())/(yhat.std()*y[valid_idx].std())
     
-    print mu, err/5
-    if err<opterr:
-        opterr=err
+    print mu, cor
+    if cor>optcor:
+        optcor=cor
         optmu0=mu
             
-print optmu0, opterr
+print optmu0, optcor
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu0,0,[])
@@ -142,7 +124,7 @@ w=res['weights']
 # predict
 ldelta0 = res['ldelta0']
 yhat = lmm_lasso.predict(y[train_idx],X[train_idx,:],X[test_idx,:],K[train_idx][:,train_idx],K[test_idx][:,train_idx],ldelta0,w)
-corr = 1./n_test * ((yhat-yhat.mean())*(y[test_idx]-y[test_idx].mean())).sum()/(yhat.std()*y[test_idx].std())
+corr = 1./n_test * SP.dot(yhat.T-yhat.mean(),y[test_idx]-y[test_idx].mean())/(yhat.std()*y[test_idx].std())
 print corr    
 
 
@@ -154,10 +136,12 @@ sserr1=0
 sserr2=0
 for i in range(n_f):
     if i in idx:
-        sserr1+=n_reps-ss[i]
+        if ss[i]<n_reps*0.8:
+            sserr1+=1
     else:
-        sserr2+=ss[i]
-        
+        if ss[i]>=n_reps*0.8:
+            sserr2+=1
+            
 # group info not included
 ss2=lmm_lasso.stability_selection(X,K,y,optmu0,0,[],n_reps,f_subset)
 
@@ -165,13 +149,16 @@ ss2err1=0
 ss2err2=0
 for i in range(n_f):
     if i in idx:
-        ss2err1+=n_reps-ss2[i]
+        if ss2[i]<n_reps*0.8:
+            ss2err1+=1
     else:
-        ss2err2+=ss2[i]
+        if ss2[i]>=n_reps*0.8:
+            ss2err2+=1
 
 # Output
 
 for i in range(n_f):
     print i, (i in idx), ss[i], ss2[i]
 
+print optmu,optmu2,optmu0
 print sserr1, sserr2, ss2err1, ss2err2
