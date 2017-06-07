@@ -114,9 +114,9 @@ print corr
 
 # lasso parameter selection by 5 fold cv
 optmu0=muinit
-optcor=0
+opterr=500*n_s
 for j1 in range(10):
-    mu=muinit*(1.5**j1)
+    mu=muinit*(ps_step**j1)
     err=0
     for k in range(5):
         train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.8):n_train]))
@@ -131,7 +131,7 @@ for j1 in range(10):
         opterr=err
         optmu0=mu
             
-print optmu0
+print optmu0, opterr
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu0,0,[])
