@@ -60,8 +60,8 @@ n_test = n_s - n_train
 n_reps = 5
 f_subset = 0.5
 
-muinit = 0.01
-mu2init = 0.01
+muinit = 0.1
+mu2init = 0.1
 ps_step = 1.5
 
 group=[]
@@ -105,8 +105,6 @@ print optmu, optmu2, opterr
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu,optmu2,group)
 w=res['weights']
-for i in range(100):
-    print w[i*10:i*10+10], i*10+10
     
 # predict
 ldelta0 = res['ldelta0']
@@ -128,20 +126,17 @@ for j1 in range(10):
         yhat1 = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[train2_idx,:],K[train1_idx][:,train1_idx],K[train2_idx][:,train1_idx],res1['ldelta0'],w1)
         err+=LA.norm(yhat1-y[train2_idx])**2
     
-    print mu, mu2, err/5
+    print mu, err/5
     if err<opterr:
         opterr=err
-        optmu=mu
-        optmu2=mu2
+        optmu0=mu
             
 print optmu0
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu0,0,[])
 w=res['weights']
-for i in range(100):
-    print w[i*10:i*10+10], i*10+10
-    
+   
 # predict
 ldelta0 = res['ldelta0']
 yhat = lmm_lasso.predict(y[train_idx],X[train_idx,:],X[test_idx,:],K[train_idx][:,train_idx],K[test_idx][:,train_idx],ldelta0,w)
