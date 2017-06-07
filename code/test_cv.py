@@ -60,9 +60,9 @@ n_test = n_s - n_train
 n_reps = 5
 f_subset = 0.5
 
-muinit = 0.1
-mu2init = 0.1
-ps_step = 1.5
+muinit = 0.01
+mu2init = 0.01
+ps_step = 3
 
 group=[]
 for i in range(43):
@@ -87,7 +87,7 @@ for j1 in range(10):
         mu2=mu2init*(ps_step**j2)
         err=0
         for k in range(5):
-            train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.8):n_train]))
+            train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
             train2_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
             res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,mu2,group)
             w1=res1['weights']
@@ -119,7 +119,7 @@ for j1 in range(10):
     mu=muinit*(ps_step**j1)
     err=0
     for k in range(5):
-        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.8):n_train]))
+        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
         train2_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
         res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,0,[])
         w1=res1['weights']
