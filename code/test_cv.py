@@ -28,10 +28,12 @@ import lmm_lasso_pg as lmm_lasso
 import os
 
 # load genotypes
-X = SP.genfromtxt("geno.csv",delimiter=',')
+X = SP.array(list(csv.reader(open('geno.csv','rb'),delimiter=','))).astype(float)
 [n_f,n_s] = X.shape
 for i in xrange(n_f):
-    X[i]=(X[i]-(X[i]).mean())/(X[i]).std()
+    m=X[i].mean()
+    std=X[i].std()
+    X[i]=(X[i]-m)/std
 X=X.T
 print X.shape
 
@@ -55,7 +57,7 @@ y = (y-y.mean())/y.std()
 
 # init
 debug = False
-n_train = 150
+n_train = int(n_s*0.7)
 n_test = n_s - n_train
 n_reps = 5
 f_subset = 0.5
