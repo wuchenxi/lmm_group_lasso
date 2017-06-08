@@ -9,7 +9,8 @@ import lmm_lasso_pg as lmm_lasso
 import os
 
 # load genotypes
-X = SP.array(list(csv.reader(open('geno.csv','rb'),delimiter=','))).astype(float)
+X = SP.array(list(csv.reader(open('geno.csv','rb'),
+                             delimiter=','))).astype(float)
 [n_f,n_s] = X.shape
 for i in xrange(n_f):
     m=X[i].mean()
@@ -43,29 +44,35 @@ n_test = n_s - n_train
 n_reps = 10
 f_subset = 0.7
 
-muinit = 0.05
-mu2init = 0.05
+muinit = 0.1
+mu2init = 0.1
 ps_step = 3
 
-group=[]
-for i in range(20):
-    group+=[[i*50,i*50+50]]
-group+=[[2000,n_s]]
     
 # split into training and testing
 train_idx = SP.random.permutation(SP.arange(n_s))
 test_idx = train_idx[n_train:]
 train_idx = train_idx[:n_train]
 
-# calculate kernel: this need to be improved!
-K = 1./n_f*SP.dot(X,X.T)
+# calculate kernel
+# the first 2622 SNP are in the first chromosome which we are testing
+chro=2622 
+XO = X[:,2622:]
+X = X[:,:2622]
+K = 1./(n_f-chro)*SP.dot(XO,XO.T)
+n_f = chro
+group=[]
+for i in range(20):
+    group+=[[i*50,i*50+50]]
+group+=[[2000,n_f]]
+
 
 # Glasso Parameter selection by 5 fold cv
 optmu=muinit
 optmu2=mu2init
 optcor=0
-for j1 in range(8):
-    for j2 in range(8):
+for j1 in range(7):
+    for j2 in range(7):
         mu=muinit*(ps_step**j1)
         mu2=mu2init*(ps_step**j2)
         cor=0
@@ -83,7 +90,7 @@ for j1 in range(8):
             optmu=mu
             optmu2=mu2
             
-print optmu, optmu2, optcor
+print optmu, optmu2, optcor[0,0]
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu,optmu2,group)
@@ -93,12 +100,12 @@ w = res['weights']
 ldelta0 = res['ldelta0']
 yhat = lmm_lasso.predict(y[train_idx],X[train_idx,:],X[test_idx,:],K[train_idx][:,train_idx],K[test_idx][:,train_idx],ldelta0,w)
 corr = 1./n_test * SP.dot(yhat.T-yhat.mean(),y[test_idx]-y[test_idx].mean())/(yhat.std()*y[test_idx].std())
-print corr
+print corr[0,0]
 
 # lasso parameter selection by 5 fold cv
 optmu0=muinit
 optcor=0
-for j1 in range(8):
+for j1 in range(7):
     mu=muinit*(ps_step**j1)
     cor=0
     for k in range(1):
@@ -115,7 +122,7 @@ for j1 in range(8):
         optcor=cor
         optmu0=mu
             
-print optmu0, optcor
+print optmu0, optcor[0,0]
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu0,0,[])
@@ -125,7 +132,7 @@ w=res['weights']
 ldelta0 = res['ldelta0']
 yhat = lmm_lasso.predict(y[train_idx],X[train_idx,:],X[test_idx,:],K[train_idx][:,train_idx],K[test_idx][:,train_idx],ldelta0,w)
 corr = 1./n_test * SP.dot(yhat.T-yhat.mean(),y[test_idx]-y[test_idx].mean())/(yhat.std()*y[test_idx].std())
-print corr    
+print corr[0,0]    
 
 
 # stability selection
