@@ -1,4 +1,4 @@
-#Normalize genotype and combine it with phenotype
+#Normalize genotype and combine it with fake phenotype
 
 import csv
 import scipy as SP
@@ -67,3 +67,8 @@ if __name__ == "__main__":
     with open("phenotype32.csv", "wb") as f:
         writer = csv.writer(f)
         writer.writerows(FY.transpose())
+
+    #validate fake phenotype, that it has similar delta as we start with
+    res=lmm_lasso.train_nullmodel(FY.transpose(),FCOR)
+    delta=SP.exp(res[2])
+    print delta

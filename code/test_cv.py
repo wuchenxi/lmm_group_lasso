@@ -84,7 +84,7 @@ for j1 in range(7):
             yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
             cor += SP.dot(yhat.T-yhat.mean(),y[valid_idx]-y[valid_idx].mean())/(yhat.std()*y[valid_idx].std())
         
-        print mu, mu2, cor
+        print mu, mu2, cor[0,0]
         if cor>optcor:
             optcor=cor
             optmu=mu
@@ -117,7 +117,7 @@ for j1 in range(7):
         yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
         cor += SP.dot(yhat.T-yhat.mean(),y[valid_idx]-y[valid_idx].mean())/(yhat.std()*y[valid_idx].std())
     
-    print mu, cor
+    print mu, cor[0,0]
     if cor>optcor:
         optcor=cor
         optmu0=mu
@@ -156,10 +156,10 @@ ss2err1=0
 ss2err2=0
 for i in range(n_f):
     if i in idx:
-        if ss2[i]<n_reps*0.8:
+        if ss2[i]<n_reps*0.7:
             ss2err1+=1
     else:
-        if ss2[i]>=n_reps*0.8:
+        if ss2[i]>=n_reps*0.7:
             ss2err2+=1
 
 # Output

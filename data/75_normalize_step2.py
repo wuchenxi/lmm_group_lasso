@@ -23,7 +23,7 @@ def normalize(l):
 if __name__ == "__main__":
 
     # load genotypes
-    X = SP.genfromtxt('759.csv',delimiter=',',dtype=None)
+    X = SP.genfromtxt('75.csv',delimiter=',',dtype=None)
     # load leaf number phenotype
     X1 = SP.genfromtxt('ln10.tsv', delimiter='\t',dtype=None)
     pheno=(X[1]).tolist()
