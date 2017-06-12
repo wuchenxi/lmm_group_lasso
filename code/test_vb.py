@@ -5,7 +5,7 @@ import csv
 import scipy as SP
 import scipy.linalg as LA
 import pdb
-import lmm_lasso_pg as lmm_lasso
+import lmm_lasso_pg_vb as lmm_lasso
 import os
 
 # load genotypes
@@ -44,9 +44,8 @@ n_test = n_s - n_train
 n_reps = 5
 f_subset = 0.7
 
-muinit = 1
-mu2init = 1
-ps_step = 3
+muinit = 10
+mu2init = 10
 
     
 # split into training and testing
@@ -70,27 +69,6 @@ group+=[[2000,n_f]]
 # Glasso Parameter selection by 5 fold cv
 optmu=muinit
 optmu2=mu2init
-optcor=0
-for j1 in range(6):
-    for j2 in range(6):
-        mu=muinit*(ps_step**j1)
-        mu2=mu2init*(ps_step**j2)
-        cor=0
-        for k in range(1): #5 for full 5 fold CV
-            train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
-            valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
-            res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,mu2,group)
-            w1=res1['weights']
-            yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
-            cor += SP.dot(yhat.T-yhat.mean(),y[valid_idx]-y[valid_idx].mean())/(yhat.std()*y[valid_idx].std())
-        
-        print mu, mu2, cor[0,0]
-        if cor>optcor:
-            optcor=cor
-            optmu=mu
-            optmu2=mu2
-            
-print optmu, optmu2, optcor[0,0]
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu,optmu2,group)
@@ -104,25 +82,6 @@ print corr[0,0]
 
 # lasso parameter selection by 5 fold cv
 optmu0=muinit
-optcor=0
-for j1 in range(6):
-    mu=muinit*(ps_step**j1)
-    cor=0
-    for k in range(1):
-        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],
-                                   train_idx[int(n_train*(k+1)*0.2):n_train]))
-        valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
-        res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,0,[])
-        w1=res1['weights']
-        yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
-        cor += SP.dot(yhat.T-yhat.mean(),y[valid_idx]-y[valid_idx].mean())/(yhat.std()*y[valid_idx].std())
-    
-    print mu, cor[0,0]
-    if cor>optcor:
-        optcor=cor
-        optmu0=mu
-            
-print optmu0, optcor[0,0]
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu0,0,[])
@@ -158,11 +117,9 @@ for i in range(n_f):
     if i in idx:
         if ss2[i]<n_reps*0.7:
             ss2err1+=1
-            print "FN", i
     else:
         if ss2[i]>=n_reps*0.7:
             ss2err2+=1
-            print "FP", i
 
 # Output
 

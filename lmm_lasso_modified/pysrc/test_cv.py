@@ -60,7 +60,7 @@ if __name__ == "__main__":
     debug = False
     n_train = 150
     n_test = n_s - n_train
-    n_reps = 5
+    n_reps = 8
     f_subset = 0.5
     muinit = 0.01
     mu2init = 0.01
