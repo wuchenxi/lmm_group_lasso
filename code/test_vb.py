@@ -71,23 +71,31 @@ group+=[[2000,n_f]]
 optmu=muinit
 optmu2=mu2init
 opterr=n_s*1000
-for j in range(6):
-    mu=muinit*(ps_step**j)
-    mu2=mu2init*(ps_step**j)
-    err=0
-    for k in range(1): #5 for full 5 fold CV
-        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
-        valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
-        res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,mu2,group)
-        w1=res1['weights']
-        yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
-        err += LA.norm(yhat-y[valid_idx])
-        
-    print mu, mu2, err
-    if err<opterr:
-        opterr=err
+for j1 in range(6):
+    mu=muinit*(ps_step**j1)
+    opterr1=n_s*1000
+    optmu2t=mu2init
+    for j2 in range(6):
+        mu2=mu2init*(ps_step**j2)
+        err=0
+        for k in range(1): #5 for full 5 fold CV
+            train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
+            valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
+            res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,mu2,group)
+            w1=res1['weights']
+            yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
+            err += LA.norm(yhat-y[valid_idx])
+            
+        print mu, mu2, err
+        if err<opterr:
+            opterr1=err
+            optmu2t=mu2
+        else:
+            break
+    if opterr1<opterr:
+        opterr=opterr1
         optmu=mu
-        optmu2=mu2
+        optmu2=optmu2t
     else:
         break
 
