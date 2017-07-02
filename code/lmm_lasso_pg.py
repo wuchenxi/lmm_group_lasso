@@ -11,7 +11,7 @@ import time
 import numpy as NP
 
 
-def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset,**kwargs):
+def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset):
     """
     run stability selection
 
@@ -31,12 +31,14 @@ def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset,**kwargs):
     [n_s,n_f] = X.shape
     n_subsample = int(SP.ceil(f_subset * n_s))
     freq = SP.zeros(n_f)
-    
+    w=0
     for i in range(n_reps):
         print 'Iteration %d'%i
         idx = SP.random.permutation(n_s)[:n_subsample]
-        res = train(X[idx],K[idx][:,idx],y[idx],mu,mu2,group,**kwargs)
+        res = train(X[idx],K[idx][:,idx],y[idx],mu,mu2,group,numintervals=100,ldeltamin=-5,ldeltamax=5,
+                    rho=1,alpha=1,debug=False,w0=w)
         snp_idx = (res['weights']!=0).flatten()
+        w=res['weights']
         freq[snp_idx] += 1
         
     time_end = time.time()
@@ -44,7 +46,7 @@ def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset,**kwargs):
     print 'time: %.2fs'%(time_diff)
     return freq
 
-def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1,debug=False):
+def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1,debug=False,w0=0):
     """
     train linear mixed model lasso
 
@@ -83,7 +85,7 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     SUy = SP.dot(U.T,y)
     SUy = SUy * SP.reshape(Sdi_sqrt,(n_s,1))
     
-    w= train_lasso(SUX,SUy,mu,mu2,group,rho,alpha,debug=debug)
+    w= train_lasso(SUX,SUy,mu,mu2,group,rho,alpha,debug=debug,w0=w0)
 
     time_end = time.time()
     time_diff = time_end - time_start
@@ -142,7 +144,7 @@ def predict(y_t,X_t,X_v,K_tt,K_vt,ldelta,w):
 helper functions
 """
 
-def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=1000,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False):
+def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=2000,zero_threshold=1E-3,debug=False,w0=0):
     """
     train lasso via PG:
     min_w  0.5*sum((y-Xw)**2) + mu*|z| + mu2*|z|_2
@@ -159,7 +161,10 @@ def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=1000,abstol=1E-4,reltol=
 
     # init
     [n_s,n_f] = X.shape
-    w = SP.zeros((n_f,1))
+    if type(w0)==type(0):
+        w = SP.zeros((n_f,1))
+    else:
+        w = w0
     wold = w
     curval=0.5*((SP.dot(X,w)-y)**2).sum()
     t=1

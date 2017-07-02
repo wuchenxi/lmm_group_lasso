@@ -41,11 +41,12 @@ y = (y-y.mean())/y.std()
 debug = False
 n_train = int(n_s*0.7)
 n_test = n_s - n_train
-n_reps = 5
+n_reps = 10
 f_subset = 0.7
 
 muinit = 10
 mu2init = 10
+ps_step = 0.3
 
     
 # split into training and testing
@@ -69,6 +70,26 @@ group+=[[2000,n_f]]
 # Glasso Parameter selection by 5 fold cv
 optmu=muinit
 optmu2=mu2init
+opterr=n_s*1000
+for j in range(6):
+    mu=muinit*(ps_step**j)
+    mu2=mu2init*(ps_step**j)
+    err=0
+    for k in range(1): #5 for full 5 fold CV
+        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
+        valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
+        res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,mu2,group)
+        w1=res1['weights']
+        yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
+        err += LA.norm(yhat-y[valid_idx])
+        
+    print mu, mu2, err
+    if err<opterr:
+        opterr=err
+        optmu=mu
+        optmu2=mu2
+    else:
+        break
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu,optmu2,group)
@@ -82,6 +103,25 @@ print corr[0,0]
 
 # lasso parameter selection by 5 fold cv
 optmu0=muinit
+opterr=n_s*1000
+for j in range(6):
+    mu=muinit*(ps_step**j)
+    mu2=mu2init*(ps_step**j)
+    err=0
+    for k in range(1): #5 for full 5 fold CV
+        train1_idx=SP.concatenate((train_idx[:int(n_train*k*0.2)],train_idx[int(n_train*(k+1)*0.2):n_train]))
+        valid_idx=train_idx[int(n_train*k*0.2):int(n_train*(k+1)*0.2)]
+        res1=lmm_lasso.train(X[train1_idx],K[train1_idx][:,train1_idx],y[train1_idx],mu,mu2,[])
+        w1=res1['weights']
+        yhat = lmm_lasso.predict(y[train1_idx],X[train1_idx,:],X[valid_idx,:],K[train1_idx][:,train1_idx],K[valid_idx][:,train1_idx],res1['ldelta0'],w1)
+        err += LA.norm(yhat-y[valid_idx])
+        
+    print mu, err
+    if err<opterr:
+        opterr=err
+        optmu0=mu
+    else:
+        break
 
 # train
 res = lmm_lasso.train(X[train_idx],K[train_idx][:,train_idx],y[train_idx],optmu0,0,[])
@@ -102,10 +142,10 @@ sserr1=0
 sserr2=0
 for i in range(n_f):
     if i in idx:
-        if ss[i]<n_reps*0.7:
+        if ss[i]<n_reps*0.8:
             sserr1+=1
     else:
-        if ss[i]>=n_reps*0.7:
+        if ss[i]>=n_reps*0.8:
             sserr2+=1
             
 # group info not included
@@ -115,10 +155,10 @@ ss2err1=0
 ss2err2=0
 for i in range(n_f):
     if i in idx:
-        if ss2[i]<n_reps*0.7:
+        if ss2[i]<n_reps*0.8:
             ss2err1+=1
     else:
-        if ss2[i]>=n_reps*0.7:
+        if ss2[i]>=n_reps*0.8:
             ss2err2+=1
 
 # Output
