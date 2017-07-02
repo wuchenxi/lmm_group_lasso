@@ -87,7 +87,7 @@ for j1 in range(6):
             err += LA.norm(yhat-y[valid_idx])
             
         print mu, mu2, err
-        if err<opterr:
+        if err<opterr1:
             opterr1=err
             optmu2t=mu2
         else:
