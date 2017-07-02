@@ -147,11 +147,11 @@ sserr1=0
 sserr2=0
 for i in range(n_f):
     if i in idx:
-        if ss[i]<n_reps*0.7:
+        if ss[i]<n_reps*0.8:
             sserr1+=1
             print "fn", i
     else:
-        if ss[i]>=n_reps*0.7:
+        if ss[i]>=n_reps*0.8:
             sserr2+=1
             print "fp", i
             

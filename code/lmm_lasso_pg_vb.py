@@ -194,6 +194,10 @@ def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=7,abstol=1E-4,reltol=1E
         w=w0
     muv=SP.array([mu*5.0]*n_f)
     mu2v=SP.array([mu2*5.0]*len(group))
+    for j in xrange(n_f):
+        muv[j]=mu/(abs(w[j])+0.2)
+    for j in xrange(len(group)):
+        mu2v[j]=mu2/(LA.norm(w[group[j][0]:group[j][1]])+0.2)
     for i in range(max_iter):
         w=train_lasso(X,y,w,muv,mu2v,group,zero_threshold=zero_threshold,debug=debug)
         for j in xrange(n_f):
