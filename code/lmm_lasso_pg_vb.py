@@ -185,15 +185,24 @@ def train_lasso(X,y,w,mu,mu2,group,rho=1,alpha=1,max_iter=300,zero_threshold=1E-
     w[SP.absolute(w)<zero_threshold]=0
     return w
 
+def ridge(X,y,mu):
+    [n_s,n_f]=X.shape
+    W=SP.dot(X,X.T)+SP.diag([mu]*n_s)
+    Winv=LA.inv(W)
+    r=SP.dot(Winv,y)
+    r=SP.dot(X.T,r)
+    return r
+
 
 def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=4,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False,w0=0):
     [n_s,n_f] = X.shape
     if type(w0)==type(0):
-        w = SP.zeros((n_f,1))
+        w = ridge(X,y,mu)
+        w = SP.reshape(w,(n_f,1))
     else:
         w=w0
-    muv=SP.array([mu*5.0]*n_f)
-    mu2v=SP.array([mu2*5.0]*len(group))
+    muv=SP.array([0.0]*n_f)
+    mu2v=SP.array([0.0]*len(group))
     for j in xrange(n_f):
         muv[j]=mu/(abs(w[j])+0.2)
     for j in xrange(len(group)):
