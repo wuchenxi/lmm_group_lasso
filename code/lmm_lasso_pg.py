@@ -36,7 +36,7 @@ def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset):
         print 'Iteration %d'%i
         idx = SP.random.permutation(n_s)[:n_subsample]
         res = train(X[idx],K[idx][:,idx],y[idx],mu,mu2,group,numintervals=100,ldeltamin=-5,ldeltamax=5,
-                    rho=1,alpha=1,debug=False,w0=w)
+                    debug=False,w0=w)
         snp_idx = (res['weights']!=0).flatten()
         w=res['weights']
         freq[snp_idx] += 1
@@ -46,7 +46,7 @@ def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset):
     print 'time: %.2fs'%(time_diff)
     return freq
 
-def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1,debug=False,w0=0):
+def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,debug=False,w0=0):
     """
     train linear mixed model lasso
 
@@ -58,8 +58,6 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     numintervals: number of intervals for delta linesearch
     ldeltamin: minimal delta value (log-space)
     ldeltamax: maximal delta value (log-space)
-    rho: augmented Lagrangian parameter for Lasso solver
-    alpha: over-relatation parameter (typically ranges between 1.0 and 1.8) for Lasso solver
 
     Output:
     results
@@ -85,7 +83,7 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     SUy = SP.dot(U.T,y)
     SUy = SUy * SP.reshape(Sdi_sqrt,(n_s,1))
     
-    w= train_lasso(SUX,SUy,mu,mu2,group,rho,alpha,debug=debug,w0=w0)
+    w= train_lasso(SUX,SUy,mu,mu2,group,debug=debug,w0=w0)
 
     time_end = time.time()
     time_diff = time_end - time_start
@@ -144,7 +142,7 @@ def predict(y_t,X_t,X_v,K_tt,K_vt,ldelta,w):
 helper functions
 """
 
-def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=2000,zero_threshold=1E-3,debug=False,w0=0):
+def train_lasso(X,y,mu,mu2,group,max_iter=1000,zero_threshold=1E-3,debug=False,w0=0):
     """
     train lasso via PG:
     min_w  0.5*sum((y-Xw)**2) + mu*|z| + mu2*|z|_2
@@ -170,6 +168,8 @@ def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=2000,zero_threshold=1E-3
     t=1
     tt=1
     tto=0
+    if t<1:
+        t/=0.8
     for i in range(max_iter):
         alf=(tto-1.0)/tt
         v=(1+alf)*w-alf*wold
@@ -184,7 +184,7 @@ def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=2000,zero_threshold=1E-3
                           (v-wn)[:,0])
             if testls+t*(curval-newval)>=0:
                 break
-            t*=0.9;
+            t*=0.8
             wn=v+t*grad
             wn=soft_thresholding(wn,mu*t,mu2*t,group)
             newval=0.5*((SP.dot(X,wn)-y)**2).sum()

@@ -146,7 +146,7 @@ def predict(y_t,X_t,X_v,K_tt,K_vt,ldelta,w):
 helper functions
 """
 
-def train_lasso(X,y,w,mu,mu2,group,rho=1,alpha=1,max_iter=200,zero_threshold=1E-3,debug=False):
+def train_lasso(X,y,w,mu,mu2,group,rho=1,alpha=1,max_iter=300,zero_threshold=1E-3,debug=False):
     # init
     [n_s,n_f] = X.shape
     wold = w
@@ -159,7 +159,7 @@ def train_lasso(X,y,w,mu,mu2,group,rho=1,alpha=1,max_iter=200,zero_threshold=1E-
         v=(1+alf)*w-alf*wold
         
         curval=0.5*((SP.dot(X,v)-y)**2).sum()
-        grad=SP.dot(X.transpose(),(y-SP.dot(X,v)))        
+        grad=SP.dot(X.transpose(),(y-SP.dot(X,v)))
         wn=v+t*grad
         wn=soft_thresholding(wn,mu*t,mu2*t,group)
         newval=0.5*((SP.dot(X,wn)-y)**2).sum()
@@ -168,7 +168,7 @@ def train_lasso(X,y,w,mu,mu2,group,rho=1,alpha=1,max_iter=200,zero_threshold=1E-
                           (v-wn)[:,0])
             if testls+t*(curval-newval)>=0:
                 break
-            t*=0.9;
+            t*=0.8;
             wn=v+t*grad
             wn=soft_thresholding(wn,mu*t,mu2*t,group)
             newval=0.5*((SP.dot(X,wn)-y)**2).sum()
@@ -186,7 +186,7 @@ def train_lasso(X,y,w,mu,mu2,group,rho=1,alpha=1,max_iter=200,zero_threshold=1E-
     return w
 
 
-def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=7,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False,w0=0):
+def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=4,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False,w0=0):
     [n_s,n_f] = X.shape
     if type(w0)==type(0):
         w = SP.zeros((n_f,1))
