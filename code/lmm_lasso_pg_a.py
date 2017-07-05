@@ -1,5 +1,5 @@
 """
-GLasso with Proximal Gradient
+VBGLasso with Proximal Gradient
 """
 
 import scipy as SP
@@ -11,7 +11,7 @@ import time
 import numpy as NP
 
 
-def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset):
+def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset,**kwargs):
     """
     run stability selection
 
@@ -36,17 +36,17 @@ def stability_selection(X,K,y,mu,mu2,group,n_reps,f_subset):
         print 'Iteration %d'%i
         idx = SP.random.permutation(n_s)[:n_subsample]
         res = train(X[idx],K[idx][:,idx],y[idx],mu,mu2,group,numintervals=100,ldeltamin=-5,ldeltamax=5,
-                    debug=False,w0=w)
-        snp_idx = (res['weights']!=0).flatten()
+                    rho=1,alpha=1,debug=False,w0=w)
         w=res['weights']
+        snp_idx = (res['weights']!=0).flatten()
         freq[snp_idx] += 1
         
     time_end = time.time()
     time_diff = time_end - time_start
-    print 'time: %.2fs'%(time_diff)
+    print '... finished in %.2fs'%(time_diff)
     return freq
 
-def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,debug=False,w0=0):
+def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldeltamax=5,rho=1,alpha=1,debug=False,w0=0):
     """
     train linear mixed model lasso
 
@@ -58,6 +58,8 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     numintervals: number of intervals for delta linesearch
     ldeltamin: minimal delta value (log-space)
     ldeltamax: maximal delta value (log-space)
+    rho: augmented Lagrangian parameter for Lasso solver
+    alpha: over-relatation parameter (typically ranges between 1.0 and 1.8) for Lasso solver
 
     Output:
     results
@@ -83,11 +85,11 @@ def train(X,K,y,mu,mu2,group=[[0,1],[2,3,4]],numintervals=100,ldeltamin=-5,ldelt
     SUy = SP.dot(U.T,y)
     SUy = SUy * SP.reshape(Sdi_sqrt,(n_s,1))
     
-    w= train_lasso(SUX,SUy,mu,mu2,group,debug=debug,w0=w0)
+    w= train_lasso2(SUX,SUy,mu,mu2,group,rho,alpha,debug=debug,w0=w0)
 
     time_end = time.time()
     time_diff = time_end - time_start
-    print 'time %.2fs'%(time_diff)
+    print '... finished in %.2fs'%(time_diff)
 
     res = {}
     res['ldelta0'] = ldelta0
@@ -113,6 +115,8 @@ def predict(y_t,X_t,X_v,K_tt,K_vt,ldelta,w):
     Output:
     y_v: predicted phenotype: n_val x 1
     """
+    print 'predict LMM-Lasso'
+    
     assert y_t.shape[0]==X_t.shape[0], 'dimensions do not match'
     assert y_t.shape[0]==K_tt.shape[0], 'dimensions do not match'
     assert y_t.shape[0]==K_tt.shape[1], 'dimensions do not match'
@@ -142,34 +146,15 @@ def predict(y_t,X_t,X_v,K_tt,K_vt,ldelta,w):
 helper functions
 """
 
-def train_lasso(X,y,mu,mu2,group,max_iter=2000,zero_threshold=1E-3,debug=False,w0=0):
-    """
-    train lasso via PG:
-    min_w  0.5*sum((y-Xw)**2) + mu*|z| + mu2*|z|_2
-    
-    Input:
-    X: design matrix: n_s x n_f
-    y: outcome:  n_s x 1
-    mu: l1-penalty parameter
-    rho: augmented Lagrangian parameter
-    alpha: over-relatation parameter (typically ranges between 1.0 and 1.8)
-    """
-    if debug:
-        print '... train lasso'
-
+def train_lasso(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=2000,zero_threshold=1E-3,debug=False):
     # init
     [n_s,n_f] = X.shape
-    if type(w0)==type(0):
-        w = SP.zeros((n_f,1))
-    else:
-        w = w0
+    w = SP.zeros((n_f,1))
     wold = w
     curval=0.5*((SP.dot(X,w)-y)**2).sum()
     t=1
     tt=1
     tto=0
-    if t<1:
-        t/=0.8
     for i in range(max_iter):
         alf=(tto-1.0)/tt
         v=(1+alf)*w-alf*wold
@@ -184,7 +169,7 @@ def train_lasso(X,y,mu,mu2,group,max_iter=2000,zero_threshold=1E-3,debug=False,w
                           (v-wn)[:,0])
             if testls+t*(curval-newval)>=0:
                 break
-            t*=0.8
+            t*=0.8;
             wn=v+t*grad
             wn=soft_thresholding(wn,mu*t,mu2*t,group)
             newval=0.5*((SP.dot(X,wn)-y)**2).sum()
@@ -199,10 +184,26 @@ def train_lasso(X,y,mu,mu2,group,max_iter=2000,zero_threshold=1E-3,debug=False,w
     print i
     
     w[SP.absolute(w)<zero_threshold]=0
-
     return w
 
+def ridge(X,y,mu):
+    [n_s,n_f]=X.shape
+    W=SP.dot(X,X.T)+SP.diag([mu]*n_s)
+    Winv=LA.inv(W)
+    r=SP.dot(Winv,y)
+    r=SP.dot(X.T,r)
+    return r
 
+
+def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=1,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False,w0=0):
+    [n_s,n_f] = X.shape
+    w0 = ridge(X,y,0.1)
+    for j in xrange(n_f):
+        X[:,j]*=(abs(w0[j])+0.2)/0.2
+    w=train_lasso(X,y,mu,mu2,group,zero_threshold=zero_threshold,debug=debug)
+    for j in xrange(n_f):
+        w[j,:]*=(abs(w0[j])+0.2)/0.2
+    return w
     
 
 def nLLeval(ldelta,Uy,S):

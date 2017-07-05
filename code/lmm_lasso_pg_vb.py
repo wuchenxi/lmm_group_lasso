@@ -194,7 +194,7 @@ def ridge(X,y,mu):
     return r
 
 
-def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=4,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False,w0=0):
+def train_lasso2(X,y,mu,mu2,group,rho=1,alpha=1,max_iter=1,abstol=1E-4,reltol=1E-2,zero_threshold=1E-3,debug=False,w0=0):
     [n_s,n_f] = X.shape
     if type(w0)==type(0):
         w = ridge(X,y,mu)

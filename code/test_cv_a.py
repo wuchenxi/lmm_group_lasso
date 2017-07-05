@@ -5,7 +5,7 @@ import csv
 import scipy as SP
 import scipy.linalg as LA
 import pdb
-import lmm_lasso_pg as lmm_lasso
+import lmm_lasso_pg_a as lmm_lasso
 import os
 
 # load genotypes
